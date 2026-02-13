@@ -1,0 +1,6 @@
+*.exe
+*.bin
+*.a
+*.o
+main
+*.txt
