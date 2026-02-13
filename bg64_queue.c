@@ -11,6 +11,28 @@
 //     ring_buffer->counter = 0;
 // }
 
+
+
+void fill_queue(GameState *state)
+{
+    // max size - current size = amount needed to refill
+    u8 buffer_occupancy = ring_buffer_data_available(&state->buffer);
+
+    if (buffer_occupancy >= 64) return;
+
+    u8 slots_to_fill = 64 - buffer_occupancy;
+    u8 i = 0;
+
+    loop {
+        if (i >= slots_to_fill) break;
+
+        u8 composite_byte = generate_composite_byte();
+        ring_buffer_produce(&state->buffer, composite_byte);
+
+        i++;
+    }
+}
+
 u8 generate_composite_byte()
 {
     // Generate shape and color as per the arrays allocations

@@ -37,7 +37,7 @@ GameState* GameState_Initialization(Arena *arena)
     // Ensure struct alignment (safety buffer, not for bit mask modulus but rather memory alignment)
     arena->offset = (arena->offset + 63) & ~63;
 
-    // slice game state len bytes from base offset 
+    // slice game state from the memory address in the arena
     GameState *state = (GameState *)(arena->base + arena->offset);
 
     // Increment the offset, sealing that data in the bump
@@ -50,30 +50,35 @@ GameState* GameState_Initialization(Arena *arena)
 
 
 // Game State 
-void save_state(const char* file, GameState* state)
+usize save_state(const char* file, GameState* state)
 {
     FILE* f = fopen(file, "wb");
-    if (f) 
-    {
-        fwrite(state, sizeof(GameState), 1, f);
-        fclose(f);
+    if (!f) {
+        printf("Failed to open save state file");
+        return 0;
     }
+
+    usize items = fwrite(state, sizeof(GameState), 1, f);
+    fclose(f);
+
+    return (items == 1);
 }
 
 usize load_state(const char* file, GameState* state)
 {
     FILE* f = fopen(file, "rb");
-    usize bytes = 0;
-    if (f)
-    {
-        bytes = fread(state, sizeof(GameState), 1, f);
-        if (bytes < 1) {
-            printf("Bytes read from file.\n");
-        }
-        fclose(f);
-    } else {
-        printf("Failed to read bytes from file");
+
+    if (!f) {
+        printf("Failed to read state file bytes");
+        return 0;
     }
 
-    return bytes;
+    usize items = fread(state, sizeof(GameState), 1, f);
+    fclose(f);
+
+    if (items < 1) {
+        printf("Read files bytes, contents was empty. Potential corruption of file");
+    }
+
+    return items;
 }

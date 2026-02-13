@@ -155,7 +155,8 @@ typedef struct
     u8 shape_color_bits; // 1 byte: 4 bits for shape, 4 for color
     bool is_active;      // 1 byte: determines if the block is in the grid or in the deck (active is in the grid)
     Vector2 pos;         // 8 bytes (2 f32): Raylib coordinates for bitboard dragging
-    u8 _padding [6];     // 2 bytes ; padding since Vector2 uses f32 the upper bound for multiples is 4 bytes 
+    u8 _padding [4];     // 4 bytes ; padding since Vector2 uses f32 the upper bound for multiples is 4 bytes 
+    // 2 ghost bytes 
 } deck_slot; // 16 bytes  1/4 cache line
 
 typedef struct
@@ -172,7 +173,7 @@ typedef struct
 
     deck_slot deck[3];  // 48 bytes
 
-    ring_buffer pieces; // 128 bytes 
+    ring_buffer buffer; // 128 bytes 
 } __attribute__((aligned(64))) GameState; // 256 bytes, 4 cache lines 
 
 
@@ -229,7 +230,7 @@ Arena GameArena_Initialization(usize size);
 GameState* GameState_Initialization(Arena *arena);
 
 
-void save_state(const char* file, GameState* state);
+usize save_state(const char* file, GameState* state);
 usize load_state(const char* file, GameState* state);
 
 
