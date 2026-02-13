@@ -1,7 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include "bg64_state.h"
 
 
@@ -11,7 +8,6 @@ int main(void)
 
     // load in game sate from files, user high sore and entire game state
     // load new seed each session for block gen uniqueness
-    srand((usize)time(NULL));
     Arena game_arena = GameArena_Initialization(ARENA_SIZE);
     GameState *state = GameState_Initialization(&game_arena);
 

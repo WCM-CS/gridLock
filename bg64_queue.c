@@ -26,18 +26,21 @@ void fill_queue(GameState *state)
     loop {
         if (i >= slots_to_fill) break;
 
-        u8 composite_byte = generate_composite_byte();
+        u8 composite_byte = generate_composite_byte(&state->buffer.rng_seed);
         ring_buffer_produce(&state->buffer, composite_byte);
 
         i++;
     }
 }
 
-u8 generate_composite_byte()
+u8 generate_composite_byte(u64 *seed)
 {
     // Generate shape and color as per the arrays allocations
-    u8 shape = (rand() % SHAPE_LIB_SIZE) + 1; // 0 index is not a valid option 
-    u8 color = (rand() % PALETTE_SIZE) + 1;
+
+    u64 r = xorshift(seed);
+
+    u8 shape = (u8)(r % SHAPE_LIB_SIZE) + 1;
+    u8 color = (u8)((r >> 32) % PALETTE_SIZE) + 1;
 
     // 0x0F cleans the bytes ensuring 4 bits only
     // composite_byte: [1000 | 1000](example bits) or [high | low] or [shape | color]

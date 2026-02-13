@@ -116,12 +116,15 @@ typedef struct
     volatile u8 counter;     // 1 byte
     volatile u8 write_index; // 1 byte
     volatile u8 read_index;  // 1 byte
+    u8 _pad0; // 1 byte: keeps buffer alignment
+
+    u64 rng_seed; // 8 bytes
 
     // u8 Byte stores 4 bits: Block shape, 4 bits: Block Color
     // Block shape is only used to enter the grid, the color is stored in state for raylib rendering
     u8 buffer[64];          // 64 bytes, 21 turns before a refill of blocks
     
-    u8 _padding[61];          // 61 bytes
+    u8 _padding[53];          // 53 bytes
 } ring_buffer; // 128 bytes, 2 cache lines
 
 
@@ -229,6 +232,7 @@ typedef struct {
 Arena GameArena_Initialization(usize size);
 GameState* GameState_Initialization(Arena *arena);
 
+u64 xorshift(u64 *seed);
 
 usize save_state(const char* file, GameState* state);
 usize load_state(const char* file, GameState* state);

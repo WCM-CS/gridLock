@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "bg64_state.h"
-
+#include <time.h>
 
 
 
@@ -39,6 +39,11 @@ GameState* GameState_Initialization(Arena *arena)
 
     // slice game state from the memory address in the arena
     GameState *state = (GameState *)(arena->base + arena->offset);
+
+    state->buffer.rng_seed = (u64)time(NULL);
+    if (state->buffer.rng_seed == 0){
+        state->buffer.rng_seed = 0xFEED; 
+    }
 
     // Increment the offset, sealing that data in the bump
     arena->offset += sizeof(GameState);
@@ -81,4 +86,14 @@ usize load_state(const char* file, GameState* state)
     }
 
     return items;
+}
+
+
+u64 xorshift(u64 *seed)
+{
+    u64 x = *seed;
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+    return *seed = x;
 }

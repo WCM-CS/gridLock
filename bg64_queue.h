@@ -8,5 +8,5 @@ u8 ring_buffer_consume(ring_buffer *ring_buffer);
 u8 ring_buffer_consume_batch(ring_buffer *ring_buffer, u8 *batch, u8 max_batch_size); // pass in a [u8; 256] 
 
 void fill_queue(GameState *state);
-u8 generate_composite_byte();
+u8 generate_composite_byte(u64 *seed);
 
