@@ -16,9 +16,23 @@ int main(void)
 
     u8 buff[256] = {0};
 
-    u8 data1 = ring_buffer_consume_batch(&state->buffer, buff, 3);
+    u8 data1 = ring_buffer_consume_batch(&state->buffer, buff, 24);
 
     fill_queue(state);
+
+    u8 idx = 0;
+    loop {
+        if (idx >= data1) break;
+        u8 comp_byte = buff[idx];
+
+        u8 shape_id = GET_SHAPE(comp_byte);
+        u8 color_id = GET_COLOR(comp_byte);
+
+        printf("Slot %d -> Shape ID: %d, Color ID: %d\n", idx, shape_id, color_id);
+        
+        idx++;
+    }
+
 
     u8 data2 = ring_buffer_consume_batch(&state->buffer, buff, 255);
 

@@ -11,15 +11,19 @@
 
 
 
-Arena GameArena_Initialization(usize size) 
+Arena 
+GameArena_Initialization(usize size) 
 {
     // malloc 1MB aligned to 64 bytes
     u8 *raw_memory = (u8 *)aligned_alloc(64, size);
 
-    // Zero the entire arena
-    if (raw_memory) {
-        memset(raw_memory, 0, size);
+    if (raw_memory == NULL) {
+        printf("ALLOCATION FAILED\n");
+        exit(1);
     }
+
+    // Zero the entire arena
+    if (raw_memory) memset(raw_memory, 0, size);
 
     // Initialize the game arena with the mem block
     Arena game_arena = {
@@ -32,7 +36,8 @@ Arena GameArena_Initialization(usize size)
 }
 
 
-GameState* GameState_Initialization(Arena *arena)
+GameState* 
+GameState_Initialization(Arena *arena)
 {
     // Ensure struct alignment (safety buffer, not for bit mask modulus but rather memory alignment)
     arena->offset = (arena->offset + 63) & ~63;
@@ -40,6 +45,7 @@ GameState* GameState_Initialization(Arena *arena)
     // slice game state from the memory address in the arena
     GameState *state = (GameState *)(arena->base + arena->offset);
 
+    // Set seed for composite byte generation
     state->buffer.rng_seed = (u64)time(NULL);
     if (state->buffer.rng_seed == 0){
         state->buffer.rng_seed = 0xFEED; 
@@ -55,7 +61,8 @@ GameState* GameState_Initialization(Arena *arena)
 
 
 // Game State 
-usize save_state(const char* file, GameState* state)
+usize 
+save_state(const char* file, GameState* state)
 {
     FILE* f = fopen(file, "wb");
     if (!f) {
@@ -69,7 +76,8 @@ usize save_state(const char* file, GameState* state)
     return (items == 1);
 }
 
-usize load_state(const char* file, GameState* state)
+usize 
+load_state(const char* file, GameState* state)
 {
     FILE* f = fopen(file, "rb");
 
@@ -88,12 +96,3 @@ usize load_state(const char* file, GameState* state)
     return items;
 }
 
-
-u64 xorshift(u64 *seed)
-{
-    u64 x = *seed;
-    x ^= x << 13;
-    x ^= x >> 7;
-    x ^= x << 17;
-    return *seed = x;
-}

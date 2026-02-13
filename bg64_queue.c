@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "bg64_state.h"
 #include "bg64_queue.h"
 
@@ -12,46 +13,8 @@
 // }
 
 
-
-void fill_queue(GameState *state)
-{
-    // max size - current size = amount needed to refill
-    u8 buffer_occupancy = ring_buffer_data_available(&state->buffer);
-
-    if (buffer_occupancy >= 64) return;
-
-    u8 slots_to_fill = 64 - buffer_occupancy;
-    u8 i = 0;
-
-    loop {
-        if (i >= slots_to_fill) break;
-
-        u8 composite_byte = generate_composite_byte(&state->buffer.rng_seed);
-        ring_buffer_produce(&state->buffer, composite_byte);
-
-        i++;
-    }
-}
-
-u8 generate_composite_byte(u64 *seed)
-{
-    // Generate shape and color as per the arrays allocations
-
-    u64 r = xorshift(seed);
-
-    u8 shape = (u8)(r % SHAPE_LIB_SIZE) + 1;
-    u8 color = (u8)((r >> 32) % PALETTE_SIZE) + 1;
-
-    // 0x0F cleans the bytes ensuring 4 bits only
-    // composite_byte: [1000 | 1000](example bits) or [high | low] or [shape | color]
-    u8 high = (shape & 0x0F) << 4; // left bit shift by 4 to ensure no overlaps in the byte
-    u8 low = color & 0x0F; 
- 
-    // return merged byte storing both a random shape and color
-    return (high | low);
-}
-
-bool ring_buffer_produce(ring_buffer *ring_buffer, u8 data)
+bool 
+ring_buffer_produce(ring_buffer *ring_buffer, u8 data)
 {
     if (ring_buffer->counter >= 64) return false; 
 
@@ -62,7 +25,8 @@ bool ring_buffer_produce(ring_buffer *ring_buffer, u8 data)
 } // ++ increments after indexing with the starting value
 
 
-u8 ring_buffer_consume(ring_buffer *ring_buffer)
+u8 
+ring_buffer_consume(ring_buffer *ring_buffer)
 {
     if (ring_buffer->counter == 0) return 0;
 
@@ -73,7 +37,8 @@ u8 ring_buffer_consume(ring_buffer *ring_buffer)
 }
 
 
-u8 ring_buffer_consume_batch(ring_buffer *ring_buffer, u8 *batch, u8 max_batch_size)
+u8 
+ring_buffer_consume_batch(ring_buffer *ring_buffer, u8 *batch, u8 max_batch_size)
 {
     u8 available_bytes = ring_buffer->counter;
     if (available_bytes == 0 || max_batch_size == 0) return 0;
@@ -96,7 +61,67 @@ u8 ring_buffer_consume_batch(ring_buffer *ring_buffer, u8 *batch, u8 max_batch_s
 }  // max batch size to consume is 64
 
 
-u8 ring_buffer_data_available(ring_buffer *ring_buffer) 
-{
-    return ring_buffer->counter;
+u8 
+ring_buffer_data_available(ring_buffer *ring_buffer) 
+{ 
+    return ring_buffer->counter; 
 }
+
+
+u64 
+xorshift(u64 *seed)
+{
+    u64 x = *seed;
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+
+    return *seed = x;
+}
+
+
+u8 
+generate_composite_byte(u64 *seed)
+{
+    // Generate shape and color as per the arrays allocations
+
+    u64 r = xorshift(seed);
+
+    u8 shape = (u8)(r % SHAPE_LIB_SIZE) + 1;
+    u8 color = (u8)((r >> 32) % PALETTE_SIZE) + 1;
+
+    // 0x0F cleans the bytes ensuring 4 bits only
+    // composite_byte: [1000 | 1000](example bits) or [high | low] or [shape | color]
+    u8 high = (shape & 0x0F) << 4; // left bit shift by 4 to ensure no overlaps in the byte
+    u8 low = color & 0x0F; 
+ 
+    // return merged byte storing both a random shape and color
+    return (high | low);
+}
+
+
+void 
+fill_queue(GameState *state)
+{
+    // max size - current size = amount needed to refill
+    u8 buffer_occupancy = ring_buffer_data_available(&state->buffer);
+
+    if (buffer_occupancy >= 64) return;
+
+    u8 slots_to_fill = 64 - buffer_occupancy;
+    u8 i = 0;
+
+    loop {
+        if (i >= slots_to_fill) break;
+
+        u8 composite_byte = generate_composite_byte(&state->buffer.rng_seed);
+
+        if (!ring_buffer_produce(&state->buffer, composite_byte)) {
+            TraceLog(LOG_WARNING, "RingBuffer overflow at index %d", state->buffer.write_index);
+            break;
+        }
+        
+        i++;
+    }
+}
+

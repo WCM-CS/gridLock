@@ -37,7 +37,8 @@ typedef long double f80; // 16 bytes
 // 1MB 
 static const usize ARENA_SIZE = 1024 * 1024;
 
-typedef struct {
+typedef struct 
+{
     u8 *base;      // Pointer to the BLOCK-O-MEM
     usize size;    // Total capacity (1MB)
     usize offset;  // Current offset bump increment
@@ -112,19 +113,21 @@ static const u64 SHAPE_LIBRARY[16] = { // 10
 //     - This amortizes randomization function calls by batch queueing new blocks
 typedef struct 
 {
+    u64 rng_seed; // 8 bytes
     // Current bytes in the ring buffer
     volatile u8 counter;     // 1 byte
     volatile u8 write_index; // 1 byte
     volatile u8 read_index;  // 1 byte
+    
     u8 _pad0; // 1 byte: keeps buffer alignment
 
-    u64 rng_seed; // 8 bytes
+    
 
     // u8 Byte stores 4 bits: Block shape, 4 bits: Block Color
     // Block shape is only used to enter the grid, the color is stored in state for raylib rendering
     u8 buffer[64];          // 64 bytes, 21 turns before a refill of blocks
     
-    u8 _padding[53];          // 53 bytes
+    u8 _padding[52];          // 52 bytes
 } ring_buffer; // 128 bytes, 2 cache lines
 
 
@@ -155,11 +158,10 @@ typedef struct
 
 typedef struct 
 {
+    Vector2 pos;         // 8 bytes (2 f32): Raylib coordinates for bitboard dragging
     u8 shape_color_bits; // 1 byte: 4 bits for shape, 4 for color
     bool is_active;      // 1 byte: determines if the block is in the grid or in the deck (active is in the grid)
-    Vector2 pos;         // 8 bytes (2 f32): Raylib coordinates for bitboard dragging
-    u8 _padding [4];     // 4 bytes ; padding since Vector2 uses f32 the upper bound for multiples is 4 bytes 
-    // 2 ghost bytes 
+    u8 _padding [6];     // 6 bytes ; padding since Vector2 uses f32 the upper bound for multiples is 4 bytes 
 } deck_slot; // 16 bytes  1/4 cache line
 
 typedef struct
@@ -182,7 +184,8 @@ typedef struct
 
 
 // move whatever we need for data snapshots into the ring buffer since it has extra space
-typedef struct {
+typedef struct 
+{
     u32 magic;     // 4 bytes 
     u64 checksum;  // 8 bytes
 } snapshot;
@@ -229,13 +232,20 @@ typedef struct {
 
 
 
-Arena GameArena_Initialization(usize size);
-GameState* GameState_Initialization(Arena *arena);
+Arena 
+GameArena_Initialization(usize size);
 
-u64 xorshift(u64 *seed);
 
-usize save_state(const char* file, GameState* state);
-usize load_state(const char* file, GameState* state);
+GameState* 
+GameState_Initialization(Arena *arena);
+
+
+usize 
+save_state(const char* file, GameState* state);
+
+
+usize 
+load_state(const char* file, GameState* state);
 
 
 
