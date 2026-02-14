@@ -3,12 +3,12 @@
 #include <string.h>
 #include "bg64.h"
 #include <time.h>
+#include <assert.h>
 
 
 
 //GAME STATE: Memory Layout
-Arena 
-GameArena_Allocation(usize size) 
+Arena GameArena_Allocation(usize size) 
 {
     // malloc 1MB aligned to 64 bytes
     u8 *raw_memory = (u8 *)aligned_alloc(64, size);
@@ -32,8 +32,7 @@ GameArena_Allocation(usize size)
 }
 
 
-GameState*
-GameState_Allocation(Arena *arena)
+GameState* GameState_Allocation(Arena *arena)
 {
     // Ensure struct alignment (safety buffer, not for bit mask modulus but rather memory alignment)
     arena->offset = (arena->offset + 63) & ~63;
@@ -47,18 +46,26 @@ GameState_Allocation(Arena *arena)
     return state;
 }
 
-void
-GameState_Initialization(GameState *state)
+void GameState_Initialization(GameState *state)
 {
 
     usize items = load_state("save.bin", state);
-    if (items == 1) return;
+
+    if (items == 1) {
+        // Fill the queue; since queue may or may not need to be filled here
+        fill_queue(state);
+
+        printf("Loaded persistent game state.\n");
+    }
+    
     if (items == 0) {
+        printf("Initializing game state for new user.\n");
+
         // Wipe Memory
         memset(state, 0, sizeof(GameState));
  
         // Set Metadata
-        state->utility.magic = 0x474C4B21; // "GLK!" in hex (for GridLock)
+        state->utility.magic = 0x474C4B21; // "GLK!"
         state->utility.version = 1;
         state->utility.rng_seed = (u64)time(NULL);
         if (state->utility.rng_seed == 0) state->utility.rng_seed = 0xFEED;
@@ -81,17 +88,14 @@ GameState_Initialization(GameState *state)
         for (u8 i = 0; i < count; i++) {
             state->session.is_active[i] = true;
         }
+
+        printf("Loaded new game state.");
     }
 }
 
 
-
-
-
-
 // GAME STATE: FILE IO
-usize 
-save_state(const char* file, GameState* state)
+usize save_state(const char* file, GameState* state)
 {
     FILE* f = fopen(file, "wb");
     if (!f) {
@@ -105,8 +109,7 @@ save_state(const char* file, GameState* state)
     return (items == 1);
 }
 
-usize 
-load_state(const char* file, GameState* state)
+usize load_state(const char* file, GameState* state)
 {
     FILE* f = fopen(file, "rb");
 
@@ -126,12 +129,8 @@ load_state(const char* file, GameState* state)
 }
 
 
-
-
 // QUEUE
-
-bool 
-ring_buffer_produce(GameState *state, u8 data)
+bool ring_buffer_produce(GameState *state, u8 data)
 {
     if (state->utility.ring_buffer_counter >= 64) return false; 
 
@@ -142,8 +141,7 @@ ring_buffer_produce(GameState *state, u8 data)
 } // ++ increments after indexing with the starting value
 
 
-u8 
-ring_buffer_consume(GameState *state)
+u8 ring_buffer_consume(GameState *state)
 {
     if (state->utility.ring_buffer_counter == 0) return 0;
 
@@ -154,8 +152,7 @@ ring_buffer_consume(GameState *state)
 }
 
 
-u8 
-ring_buffer_consume_batch(GameState *state, u8 *batch, u8 max_batch_size)
+u8 ring_buffer_consume_batch(GameState *state, u8 *batch, u8 max_batch_size)
 {
     u8 available_bytes = state->utility.ring_buffer_counter;
     if (available_bytes == 0 || max_batch_size == 0) return 0;
@@ -173,16 +170,16 @@ ring_buffer_consume_batch(GameState *state, u8 *batch, u8 max_batch_size)
 }  // max batch size to consume is 64
 
 
-u8 
-ring_buffer_data_available(GameState *state) 
+u8 ring_buffer_data_available(GameState *state) 
 { 
     return state->utility.ring_buffer_counter;
 }
 
 
-u64 
-xorshift(u64 *seed)
+u64 xorshift(u64 *seed)
 {
+    assert(seed != 0);
+
     u64 x = *seed;
     x ^= x << 13;
     x ^= x >> 7;
@@ -192,8 +189,7 @@ xorshift(u64 *seed)
 }
 
 
-u8 
-generate_composite_byte(u64 *seed)
+u8 generate_composite_byte(u64 *seed)
 {
     // Generate shape and color as per the arrays allocations
 
@@ -212,8 +208,7 @@ generate_composite_byte(u64 *seed)
 }
 
 
-void 
-fill_queue(GameState *state)
+void fill_queue(GameState *state)
 {
     // max size - current size = amount needed to refill
     u8 buffer_occupancy = ring_buffer_data_available(state);

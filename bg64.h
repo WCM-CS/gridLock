@@ -9,8 +9,6 @@
 #include "raylib.h"      // Graphics API
 
 
-// Data Type Casts       // Memory Size
-
 // Unsigned
 typedef uint8_t u8;      // 1 byte
 typedef uint16_t u16;    // 2 bytes 
@@ -34,9 +32,6 @@ typedef long double f80; // 16 bytes
 
 // Loop macro
 #define loop for(;;)
-
-#define SHAPE_OPTIONS 10
-#define COLOR_OPTIONS 3
 
 
 typedef struct 
@@ -69,7 +64,7 @@ typedef struct
     u64 current_score;  // 8 bytes 
     u64 high_score;     // 8 bytes
 
-    Vector2 deag_pos;         // 8 bytes 
+    Vector2 drag_pos;         // 8 bytes 
     u8 dragging_slot_index;   // 1 byte
     bool is_dragging;         // 1 byte
 
@@ -173,60 +168,28 @@ static const u64 SHAPE_LIBRARY[16] = { // 10
 // GAME STATE
 static const usize ARENA_SIZE = 1024 * 1024;
 
-
-Arena 
-GameArena_Allocation(usize size);
-
-
-GameState* 
-GameState_Allocation(Arena *arena);
-
-void
-GameState_Initialization(GameState *state);
-
-
-usize 
-save_state(const char* file, GameState* state);
-
-
-usize 
-load_state(const char* file, GameState* state);
-
-
-
-
-// QUEUE (RING BUFFER)
-// Composite byte conversion macros, these are for u8 composite bytes only
-
+#define SHAPE_OPTIONS 10
+#define COLOR_OPTIONS 3
 
 #define GET_SHAPE(composite_byte) ((composite_byte >> 4) & 0x0F)
 #define GET_COLOR(composite_byte) (composite_byte & 0x0F)
 
-bool 
-ring_buffer_produce(GameState *state, u8 data);
 
+Arena GameArena_Allocation(usize size);
+GameState* GameState_Allocation(Arena *arena);
+void GameState_Initialization(GameState *state);
+usize save_state(const char* file, GameState* state);
+usize load_state(const char* file, GameState* state);
 
-u8 
-ring_buffer_consume(GameState *state);
-
-
-u8 
-ring_buffer_consume_batch(GameState *state, u8 *batch, u8 max_batch_size); // pass in a [u8; 256] 
-
-
-u8 
-ring_buffer_data_available(GameState *state);
-
-
-u64 
-xorshift(u64 *seed);
-
-u8 
-generate_composite_byte(u64 *seed);
-
-void 
-fill_queue(GameState *state);
-
+// QUEUE (RING BUFFER)
+// Composite byte conversion macros, these are for u8 composite bytes only
+bool ring_buffer_produce(GameState *state, u8 data);
+u8 ring_buffer_consume(GameState *state);
+u8 ring_buffer_consume_batch(GameState *state, u8 *batch, u8 max_batch_size); // pass in a [u8; 256] 
+u8 ring_buffer_data_available(GameState *state);
+u64 xorshift(u64 *seed);
+u8 generate_composite_byte(u64 *seed);
+void fill_queue(GameState *state);
 
 
 
