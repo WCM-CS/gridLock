@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "bg64_state.h"
+#include "bg64.h"
 
 
 int main(void) 
@@ -8,15 +8,22 @@ int main(void)
 
     // load in game sate from files, user high sore and entire game state
     // load new seed each session for block gen uniqueness
-    Arena game_arena = GameArena_Initialization(ARENA_SIZE);
-    GameState *state = GameState_Initialization(&game_arena);
+    Arena game_arena = GameArena_Allocation(ARENA_SIZE);
+    GameState *state = GameState_Allocation(&game_arena);
+    
+    GameState_Initialization(state);
 
 
-    fill_queue(state);
+
+
+
+
+
+    //fill_queue(state);
 
     u8 buff[256] = {0};
 
-    u8 data1 = ring_buffer_consume_batch(&state->buffer, buff, 24);
+    u8 data1 = ring_buffer_consume_batch(state, buff, 24);
 
     fill_queue(state);
 
@@ -32,10 +39,6 @@ int main(void)
         
         idx++;
     }
-
-
-    u8 data2 = ring_buffer_consume_batch(&state->buffer, buff, 255);
-
 
     // Window
     InitWindow(360, 780, "Blocks");
@@ -62,7 +65,7 @@ int main(void)
         BeginDrawing();
             ClearBackground(BLACK);
             DrawText("Press S to save, L to load", 10, 10, 20, RAYWHITE);
-            DrawText(TextFormat("Score: %llu", state->user.current_score), 10, 40, 20, GREEN);
+            DrawText(TextFormat("Score: %llu", state->session.current_score), 10, 40, 20, GREEN);
         EndDrawing();
 
         
