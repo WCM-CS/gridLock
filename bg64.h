@@ -6,7 +6,7 @@
 #include <stddef.h>      // usize
 #include <stdbool.h>     // Usually 1 byte
 #include <stdalign.h>    // struct cache alignment
-#include "raylib.h"      // Graphics API
+#include "raylib.h"      // Graphics API 
 
 
 // Unsigned
@@ -191,6 +191,7 @@ u64 xorshift(u64 *seed);
 u8 generate_composite_byte(u64 *seed);
 void fill_queue(GameState *state);
 
+void RenderCenteredText(const char* text, u32 y, u32 font_size, Color color, u32 virtual_width);
 
 
 #endif /* RING_BUFFER_H_ */
