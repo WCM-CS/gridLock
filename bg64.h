@@ -6,7 +6,7 @@
 #include <stddef.h>      // usize
 #include <stdbool.h>     // Usually 1 byte
 #include <stdalign.h>    // struct cache alignment
-#include "raylib.h"      // Graphics API
+#include "raylib.h"      // Graphics API 
 
 
 // Unsigned
@@ -32,6 +32,10 @@ typedef long double f80; // 16 bytes
 
 // Loop macro
 #define loop for(;;)
+
+
+
+static const Rectangle PLAY_BUTTON = { (360 / 2.0f) - 80, 400, 160, 50 };
 
 
 typedef struct 
@@ -61,18 +65,19 @@ typedef struct
 typedef struct 
 {
     // USER SCORES
-    u64 current_score;  // 8 bytes 
-    u64 high_score;     // 8 bytes
+    u64 current_score;  // 8 bytes ; 8
+    u64 high_score;     // 8 bytes ; 16 
 
-    Vector2 drag_pos;         // 8 bytes 
-    u8 dragging_slot_index;   // 1 byte
-    bool is_dragging;         // 1 byte
+    Vector2 drag_pos;         // 8 bytes ; 24 
+    Vector2 drag_offset;      // 8 bytes ; 32
+    u8 dragging_slot_index;   // 1 byte ; 33
+    bool is_dragging;         // 1 byte ; 34
 
     // DECK BLOCKS
-    u8 deck_shape_color_bits[3]; // 3 bytes: 4 bits for shape, 4 for color
-    bool is_active[3];           // 3 byte: determines if the block is in the grid or in the deck (active is in the grids
+    u8 deck_shape_color_bits[3]; // 3 bytes: 37 ; 4 bits for shape, 4 for color
+    bool is_active[3];           // 3 byte: 40 ; determines if the block is in the grid or in the deck (active is in the grids
 
-    u8 _padding [32];     // 18 bytes 
+    u8 _padding [24];     // 24 bytes 
 } player_session; // 64 bytes, 1 Cache line
 
 
@@ -101,6 +106,13 @@ typedef struct
     Color palette[9];  // 36 bytes
 
 } utility; // 64 bytes
+
+typedef enum : u8 {
+    SCREEN_MENU = 0,
+    SCREEN_GAMEPLAY,
+    SCREEN_GAMEOVER,
+    SCREEN_SETTINGS
+} ScreenID;
 
 
 typedef struct 
@@ -164,6 +176,16 @@ static const u64 SHAPE_LIBRARY[16] = { // 10
 };
 
 
+static const u64 ROW_MASKS[8] = {
+    0xFF00000000000000ULL, 0x00FF000000000000ULL, 0x0000FF0000000000ULL, 0x000000FF00000000ULL,
+    0x00000000FF000000ULL, 0x0000000000FF0000ULL, 0x000000000000FF00ULL, 0x00000000000000FFULL
+};
+
+static const u64 COL_MASKS[8] = {
+    0x8080808080808080ULL, 0x4040404040404040ULL, 0x2020202020202020ULL, 0x1010101010101010ULL,
+    0x0808080808080808ULL, 0x0404040404040404ULL, 0x0202020202020202ULL, 0x0101010101010101ULL
+};
+
 
 // GAME STATE
 static const usize ARENA_SIZE = 1024 * 1024;
@@ -174,15 +196,16 @@ static const usize ARENA_SIZE = 1024 * 1024;
 #define GET_SHAPE(composite_byte) ((composite_byte >> 4) & 0x0F)
 #define GET_COLOR(composite_byte) (composite_byte & 0x0F)
 
-
+// Allocations & Inits
 Arena GameArena_Allocation(usize size);
 GameState* GameState_Allocation(Arena *arena);
 void GameState_Initialization(GameState *state);
+
+// File I/O
 usize save_state(const char* file, GameState* state);
 usize load_state(const char* file, GameState* state);
 
-// QUEUE (RING BUFFER)
-// Composite byte conversion macros, these are for u8 composite bytes only
+// Queue (Ring Buffer)
 bool ring_buffer_produce(GameState *state, u8 data);
 u8 ring_buffer_consume(GameState *state);
 u8 ring_buffer_consume_batch(GameState *state, u8 *batch, u8 max_batch_size); // pass in a [u8; 256] 
@@ -191,6 +214,19 @@ u64 xorshift(u64 *seed);
 u8 generate_composite_byte(u64 *seed);
 void fill_queue(GameState *state);
 
+
+
+// GameState
+bool TryPlace(GameState *state, u8 slot_idx, int gx, int gy, u64 *out_mask);
+void UpdateMenus(GameState *state, Vector2 virtual_mouse);\
+void UpdateGameLogic(GameState *state, Vector2 virtual_mouse, u32 offsetX, u32 offsetY, u32 cellSize);
+void BakeColorsIntoGrid(GameState *state, u64 mask, u8 slot_index);
+
+// Rendering
+void RenderCenteredText(const char* text, u32 y, u32 font_size, Color color, u32 virtual_width);
+void ClearLinesAndColors(GameState *state);
+void RenderMainScreen(GameState *state, u32 virtual_width, Vector2 virtualMouse);
+void RenderGameScreen(GameState *state, u32 offsetX, u32 offsetY, u32 cellSize, i32 virtual_width);
 
 
 #endif /* RING_BUFFER_H_ */

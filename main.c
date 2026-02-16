@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include "bg64.h"
 
 
@@ -10,72 +11,116 @@ int main(void)
     // load new seed each session for block gen uniqueness
     Arena game_arena = GameArena_Allocation(ARENA_SIZE);
     GameState *state = GameState_Allocation(&game_arena);
-    
     GameState_Initialization(state);
 
 
-    
+    const i32 virtual_width = 360;
+    const i32 virtual_height = 780;
+
+    const u32 cellSize = 40;
+    const u32 gridWidth = 8 * cellSize;
+    const u32 offsetX = (virtual_width - gridWidth) / 2;
+    const u32 offsetY = 40;
 
 
-
-    
-
-
-
-
-    //fill_queue(state);
-
-    u8 buff[256] = {0};
-
-    u8 data1 = ring_buffer_consume_batch(state, buff, 24);
-
-    fill_queue(state);
-
-    u8 idx = 0;
-    loop {
-        if (idx >= data1) break;
-        u8 comp_byte = buff[idx];
-
-        u8 shape_id = GET_SHAPE(comp_byte);
-        u8 color_id = GET_COLOR(comp_byte);
-
-        printf("Slot %d -> Shape ID: %d, Color ID: %d\n", idx, shape_id, color_id);
-        
-        idx++;
-    }
-
-    // Window
-    InitWindow(360, 780, "Blocks");
+    // Set resolution
+    InitWindow(virtual_width, virtual_height, "Blocks");
     SetTargetFPS(60);
 
+    // Make virtual canvas
+    RenderTexture2D target = LoadRenderTexture(virtual_width, virtual_height);
+    SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR); // bilinear filter does
 
-    // Game loop
-    loop {
-        if (WindowShouldClose()) break;
-        
+    ring_buffer_consume_batch(state, state->session.deck_shape_color_bits, 3);
+    while(!WindowShouldClose()) {
 
-        if(IsKeyPressed(KEY_S)) {
-            printf("Saving state...\n"); // Add a print so you can see it work!
-            save_state("save.bin", state);
+        // 1: GETTING USER IO; Input + Coordinates
+        Vector2 mouse = GetMousePosition();
+        Vector2 virtualMouse = {
+            mouse.x * (f32)virtual_width / GetScreenWidth(),
+            mouse.y * (f32)virtual_height / GetScreenHeight()
+        };
+
+
+
+        // Logic loop
+        // in game screen check if button is down
+
+
+        // pick up block
+
+        switch (state->utility.current_screen) {
+            case 0: // Main screen
+                UpdateMenus(state, virtualMouse);
+                break;
+            case 1: // Game screen
+                UpdateGameLogic(state, virtualMouse, offsetX, offsetY, cellSize);
+                break;
+            case 2: // Game lost
+            
+                break;
+            case 3: // Settings
+            
+                break;
+            
+            default:
+                break;
         }
-        
-        if (IsKeyPressed(KEY_L)) {
-            printf("Loading state...\n");
-            usize bytes = load_state("save.bin", state);
-        }
 
-        
+
+        // Render to 
+        BeginTextureMode(target);
+            ClearBackground(DARKGRAY);
+
+            // Collect game logic
+            switch (state->utility.current_screen) {
+                case 0:
+                    RenderMainScreen(state, virtual_width, virtualMouse);
+                    break;
+
+                case 1:
+                    RenderGameScreen(state, offsetX, offsetY, cellSize, virtual_width);
+                    break;
+
+                case 2: 
+                // render game over screen
+
+
+                    break;
+                
+                case 3:
+                // render settings
+                    break;
+
+
+                
+                default:
+                    // broken case
+                    ClearBackground(RED);
+                    DrawText("CRITICAL ERROR state->utility.current_screen is corrupted", 20, 20, 20, RAYWHITE);
+            
+                    //if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) state->utility.current_screen = 0;
+                    break;
+            
+            }
+
+        EndTextureMode();
+
 
         BeginDrawing();
-            ClearBackground(BLACK);
-            DrawText("Press S to save, L to load", 10, 10, 20, RAYWHITE);
-            DrawText(TextFormat("Score: %llu", state->session.current_score), 10, 40, 20, GREEN);
+        ClearBackground(BLACK); // This fills the "Letterbox" area if the screen is wide
+
+        // DrawTexturePro handles the "Casting" and Scaling
+        DrawTexturePro(target.texture, 
+            (Rectangle){ 0, 0, (float)target.texture.width, (float)-target.texture.height }, // The Source (Canvas)
+            (Rectangle){ 0, 0, (float)GetScreenWidth(), (float)GetScreenHeight() },        // The Dest (Monitor)
+            (Vector2){ 0, 0 }, 0.0f, WHITE);
         EndDrawing();
 
-        
     }
 
     CloseWindow();
     return 0;
+
 
 }
